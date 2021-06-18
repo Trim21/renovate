@@ -1,6 +1,5 @@
-import { getName, mocked } from '../../../test/util';
+import { getName, loadJsonFixture, mocked } from '../../../test/util';
 import type { RenovateConfig } from '../types';
-import presetIkatyang from './__fixtures__/renovate-config-ikatyang.json';
 import * as _local from './local';
 import * as _npm from './npm';
 import {
@@ -16,6 +15,8 @@ jest.mock('./local');
 
 const npm = mocked(_npm);
 const local = mocked(_local);
+
+const presetIkatyang = loadJsonFixture('renovate-config-ikatyang.json');
 
 npm.getPreset = jest.fn(({ packageName, presetName }) => {
   if (packageName === 'renovate-config-ikatyang') {
@@ -38,7 +39,7 @@ npm.getPreset = jest.fn(({ packageName, presetName }) => {
   return null;
 });
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('resolvePreset', () => {
     let config: RenovateConfig;
     beforeEach(() => {
@@ -61,7 +62,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -75,7 +76,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -90,7 +91,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -105,7 +106,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -120,7 +121,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -135,7 +136,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -158,7 +159,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -187,7 +188,7 @@ describe(getName(__filename), () => {
       config.extends = ['packages:linters'];
       const res = await presets.resolveConfigPresets(config);
       expect(res).toMatchSnapshot();
-      expect(res.matchPackageNames).toHaveLength(3);
+      expect(res.matchPackageNames).toHaveLength(4);
       expect(res.matchPackagePatterns).toHaveLength(1);
       expect(res.matchPackagePrefixes).toHaveLength(4);
     });
@@ -197,7 +198,7 @@ describe(getName(__filename), () => {
       expect(res).toMatchSnapshot();
       const rule = res.packageRules[0];
       expect(rule.automerge).toBe(true);
-      expect(rule.matchPackageNames).toHaveLength(3);
+      expect(rule.matchPackageNames).toHaveLength(4);
       expect(rule.matchPackagePatterns).toHaveLength(1);
       expect(rule.matchPackagePrefixes).toHaveLength(4);
     });
@@ -393,7 +394,7 @@ describe(getName(__filename), () => {
   });
   describe('getPreset', () => {
     it('handles removed presets with a migration', async () => {
-      const res = await presets.getPreset(':masterIssue', {});
+      const res = await presets.getPreset(':base', {});
       expect(res).toMatchSnapshot();
     });
     it('handles removed presets with no migration', async () => {
@@ -429,7 +430,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -441,7 +442,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -453,7 +454,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });
@@ -465,7 +466,7 @@ describe(getName(__filename), () => {
         e = err;
       }
       expect(e).toBeDefined();
-      expect(e.location).toMatchSnapshot();
+      expect(e.validationSource).toMatchSnapshot();
       expect(e.validationError).toMatchSnapshot();
       expect(e.validationMessage).toMatchSnapshot();
     });

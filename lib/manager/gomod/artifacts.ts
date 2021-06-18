@@ -1,10 +1,11 @@
+import is from '@sindresorhus/is';
 import { quote } from 'shlex';
 import { dirname, join } from 'upath';
+import { getAdminConfig } from '../../config/admin';
 import { TEMPORARY_ERROR } from '../../constants/error-messages';
 import { PLATFORM_TYPE_GITHUB } from '../../constants/platforms';
 import { logger } from '../../logger';
 import { ExecOptions, exec } from '../../util/exec';
-import { BinarySource } from '../../util/exec/common';
 import { ensureCacheDir, readLocalFile, writeLocalFile } from '../../util/fs';
 import { getRepoStatus } from '../../util/git';
 import { find } from '../../util/host-rules';
@@ -68,6 +69,21 @@ function getUpdateImportPathCmds(
   return updateImportCommands;
 }
 
+function useModcacherw(goVersion: string): boolean {
+  if (!is.string(goVersion)) {
+    return true;
+  }
+
+  const [, majorPart, minorPart] = /(\d+)\.(\d+)/.exec(goVersion) ?? [];
+  const [major, minor] = [majorPart, minorPart].map((x) => parseInt(x, 10));
+
+  return (
+    !Number.isNaN(major) &&
+    !Number.isNaN(minor) &&
+    (major > 1 || (major === 1 && minor >= 14))
+  );
+}
+
 export async function updateArtifacts({
   packageFileName: goModFileName,
   updatedDeps,
@@ -109,7 +125,8 @@ export async function updateArtifacts({
         GOPRIVATE: process.env.GOPRIVATE,
         GONOPROXY: process.env.GONOPROXY,
         GONOSUMDB: process.env.GONOSUMDB,
-        CGO_ENABLED: config.binarySource === BinarySource.Docker ? '0' : null,
+        GOFLAGS: useModcacherw(config.constraints?.go) ? '-modcacherw' : null,
+        CGO_ENABLED: getAdminConfig().binarySource === 'docker' ? '0' : null,
       },
       docker: {
         image: 'go',

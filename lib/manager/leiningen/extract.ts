@@ -1,5 +1,6 @@
-import * as datasourceClojure from '../../datasource/clojure';
+import { ClojureDatasource } from '../../datasource/clojure';
 import type { PackageDependency, PackageFile } from '../types';
+import type { ExtractContext } from './types';
 
 export function trimAtKey(str: string, kwName: string): string | null {
   const regex = new RegExp(`:${kwName}(?=\\s)`);
@@ -19,14 +20,8 @@ export function expandDepName(name: string): string {
   return name.includes('/') ? name.replace('/', ':') : `${name}:${name}`;
 }
 
-export interface ExtractContext {
-  depType?: string;
-  registryUrls?: string[];
-}
-
 export function extractFromVectors(
   str: string,
-  offset = 0,
   ctx: ExtractContext = {}
 ): PackageDependency[] {
   if (!str.startsWith('[')) {
@@ -38,7 +33,6 @@ export function extractFromVectors(
   let vecPos = 0;
   let artifactId = '';
   let version = '';
-  let fileReplacePosition: number = null;
 
   const isSpace = (ch: string): boolean => ch && /[\s,]/.test(ch);
 
@@ -46,10 +40,10 @@ export function extractFromVectors(
     s.replace(/^"/, '').replace(/"$/, '');
 
   const yieldDep = (): void => {
-    if (artifactId && version && fileReplacePosition) {
+    if (artifactId && version) {
       result.push({
         ...ctx,
-        datasource: datasourceClojure.id,
+        datasource: ClojureDatasource.id,
         depName: expandDepName(cleanStrLiteral(artifactId)),
         currentValue: cleanStrLiteral(version),
       });
@@ -81,9 +75,6 @@ export function extractFromVectors(
       } else if (vecPos === 0) {
         artifactId += char;
       } else if (vecPos === 1) {
-        if (isSpace(prevChar)) {
-          fileReplacePosition = offset + idx + 1;
-        }
         version += char;
       }
     }
@@ -126,12 +117,18 @@ function extractLeinRepos(content: string): string[] {
 }
 
 export function extractPackageFile(content: string): PackageFile {
-  const collect = (key: string, ctx: ExtractContext): PackageDependency[] => {
+  const collect = (
+    key: string,
+    registryUrls: string[]
+  ): PackageDependency[] => {
+    const ctx = {
+      depType: key,
+      registryUrls,
+    };
     let result: PackageDependency[] = [];
     let restContent = trimAtKey(content, key);
     while (restContent) {
-      const offset = content.length - restContent.length;
-      result = [...result, ...extractFromVectors(restContent, offset, ctx)];
+      result = [...result, ...extractFromVectors(restContent, ctx)];
       restContent = trimAtKey(restContent, key);
     }
     return result;
@@ -140,26 +137,10 @@ export function extractPackageFile(content: string): PackageFile {
   const registryUrls = extractLeinRepos(content);
 
   const deps: PackageDependency[] = [
-    ...collect('dependencies', {
-      depType: 'dependencies',
-      registryUrls,
-    }),
-    ...collect('managed-dependencies', {
-      depType: 'managed-dependencies',
-      registryUrls,
-    }),
-    ...collect('dev-dependencies', {
-      depType: 'managed-dependencies',
-      registryUrls,
-    }),
-    ...collect('plugins', {
-      depType: 'plugins',
-      registryUrls,
-    }),
-    ...collect('pom-plugins', {
-      depType: 'pom-plugins',
-      registryUrls,
-    }),
+    ...collect('dependencies', registryUrls),
+    ...collect('managed-dependencies', registryUrls),
+    ...collect('plugins', registryUrls),
+    ...collect('pom-plugins', registryUrls),
   ];
 
   return { deps };

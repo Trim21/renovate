@@ -1,12 +1,11 @@
-import nock from 'nock';
-import { getConfig, getName, mocked, partial } from '../../../../../test/util';
-import qJson from '../../../../config/npm/__fixtures__/01.json';
-import helmetJson from '../../../../config/npm/__fixtures__/02.json';
-import coffeelintJson from '../../../../config/npm/__fixtures__/coffeelint.json';
-import nextJson from '../../../../config/npm/__fixtures__/next.json';
-import typescriptJson from '../../../../config/npm/__fixtures__/typescript.json';
-import vueJson from '../../../../config/npm/__fixtures__/vue.json';
-import webpackJson from '../../../../config/npm/__fixtures__/webpack.json';
+import * as httpMock from '../../../../../test/http-mock';
+import {
+  getConfig,
+  getName,
+  loadJsonFixture,
+  mocked,
+  partial,
+} from '../../../../../test/util';
 import { CONFIG_VALIDATION } from '../../../../constants/error-messages';
 import * as datasourceDocker from '../../../../datasource/docker';
 import { id as datasourceDockerId } from '../../../../datasource/docker';
@@ -29,7 +28,17 @@ jest.mock('../../../../datasource/docker');
 jest.mock('../../../../datasource/git-refs');
 jest.mock('../../../../datasource/github-releases');
 
-qJson.latestVersion = '1.4.1';
+const fixtureRoot = '../../../../config/npm';
+const qJson = {
+  ...loadJsonFixture('01.json', fixtureRoot),
+  latestVersion: '1.4.1',
+};
+const helmetJson = loadJsonFixture('02.json', fixtureRoot);
+const coffeelintJson = loadJsonFixture('coffeelint.json', fixtureRoot);
+const nextJson = loadJsonFixture('next.json', fixtureRoot);
+const typescriptJson = loadJsonFixture('typescript.json', fixtureRoot);
+const vueJson = loadJsonFixture('vue.json', fixtureRoot);
+const webpackJson = loadJsonFixture('webpack.json', fixtureRoot);
 
 const docker = mocked(datasourceDocker) as any;
 docker.defaultRegistryUrls = ['https://index.docker.io'];
@@ -40,7 +49,7 @@ Object.assign(githubReleases, { defaultRegistryUrls: ['https://github.com'] });
 
 let config: LookupUpdateConfig;
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   beforeEach(() => {
     // TODO: fix types
     config = partial<LookupUpdateConfig>(getConfig());
@@ -49,6 +58,9 @@ describe(getName(__filename), () => {
     config.rangeStrategy = 'replace';
     jest.resetAllMocks();
   });
+
+  // TODO: fix mocks
+  afterEach(() => httpMock.clear(false));
 
   describe('.lookupUpdates()', () => {
     it('returns null if unknown datasource', async () => {
@@ -61,7 +73,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.datasource = datasourceNpmId;
       config.rollbackPrs = true;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('returns rollback for ranged version', async () => {
@@ -69,7 +81,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.datasource = datasourceNpmId;
       config.rollbackPrs = true;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports minor and major upgrades for tilde ranges', async () => {
@@ -77,7 +89,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports lock file updates mixed with regular updates', async () => {
@@ -87,7 +99,7 @@ describe(getName(__filename), () => {
       config.datasource = datasourceNpmId;
       config.separateMinorPatch = true;
       config.lockedVersion = '0.4.0';
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('returns multiple updates if grouping but separateMajorMinor=true', async () => {
@@ -96,7 +108,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates).toHaveLength(2);
@@ -108,7 +120,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.separateMinorPatch = true;
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates).toHaveLength(3);
@@ -120,7 +132,7 @@ describe(getName(__filename), () => {
       config.separateMajorMinor = false;
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates).toHaveLength(1);
@@ -131,7 +143,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('enforces allowedVersions', async () => {
@@ -139,7 +151,7 @@ describe(getName(__filename), () => {
       config.allowedVersions = '<1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(1);
     });
     it('enforces allowedVersions with regex', async () => {
@@ -147,7 +159,7 @@ describe(getName(__filename), () => {
       config.allowedVersions = '/^0/';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(1);
     });
     it('enforces allowedVersions with negative regex', async () => {
@@ -155,7 +167,7 @@ describe(getName(__filename), () => {
       config.allowedVersions = '!/^1/';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(1);
     });
     it('falls back to semver syntax allowedVersions', async () => {
@@ -164,7 +176,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.versioning = dockerVersioningId; // this doesn't make sense but works for this test
       config.datasource = datasourceNpmId; // this doesn't make sense but works for this test
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(1);
     });
     it('falls back to pep440 syntax allowedVersions', async () => {
@@ -173,7 +185,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.versioning = poetryVersioningId; // this doesn't make sense but works for this test
       config.datasource = datasourceNpmId; // this doesn't make sense but works for this test
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(1);
     });
     it('skips invalid allowedVersions', async () => {
@@ -181,7 +193,7 @@ describe(getName(__filename), () => {
       config.allowedVersions = 'less than 1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       await expect(lookup.lookupUpdates(config)).rejects.toThrow(
         Error(CONFIG_VALIDATION)
       );
@@ -191,7 +203,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates).toHaveLength(2);
@@ -209,7 +221,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].updateType).toEqual('patch');
@@ -220,7 +232,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('returns patch minor and major', async () => {
@@ -229,7 +241,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toHaveLength(3);
       expect(res.updates).toMatchSnapshot();
@@ -240,7 +252,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('disables major release separation (minor)', async () => {
@@ -249,7 +261,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('uses minimum version for vulnerabilityAlerts', async () => {
@@ -257,7 +269,7 @@ describe(getName(__filename), () => {
       config.isVulnerabilityAlert = true;
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = (await lookup.lookupUpdates(config)).updates;
       expect(res).toMatchSnapshot();
       expect(res).toHaveLength(1);
@@ -267,7 +279,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('ignores pinning for ranges when other upgrade exists', async () => {
@@ -275,7 +287,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades minor ranged versions', async () => {
@@ -283,15 +295,26 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
+    });
+    it('handles update-lockfile', async () => {
+      config.currentValue = '^1.2.1';
+      config.lockedVersion = '1.2.1';
+      config.rangeStrategy = 'update-lockfile';
+      config.depName = 'q';
+      config.datasource = datasourceNpmId;
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      const res = await lookup.lookupUpdates(config);
+      expect(res.updates).toMatchSnapshot();
+      expect(res.updates[0].updateType).toEqual('minor');
     });
     it('widens minor ranged versions if configured', async () => {
       config.currentValue = '~1.3.0';
       config.rangeStrategy = 'widen';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('replaces minor complex ranged versions if configured', async () => {
@@ -299,7 +322,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'replace';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('widens major ranged versions if configured', async () => {
@@ -307,7 +330,8 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'widen';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -317,7 +341,8 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'replace';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -327,7 +352,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('uses the locked version for pinning', async () => {
@@ -336,7 +361,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('ignores minor ranged versions when not pinning', async () => {
@@ -344,7 +369,7 @@ describe(getName(__filename), () => {
       config.currentValue = '^1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(0);
     });
     it('ignores minor ranged versions when locked', async () => {
@@ -353,7 +378,7 @@ describe(getName(__filename), () => {
       config.lockedVersion = '1.1.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(0);
     });
     it('upgrades tilde ranges', async () => {
@@ -361,7 +386,7 @@ describe(getName(__filename), () => {
       config.currentValue = '~1.3.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades .x minor ranges', async () => {
@@ -369,7 +394,7 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'pin';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades tilde ranges without pinning', async () => {
@@ -377,7 +402,7 @@ describe(getName(__filename), () => {
       config.currentValue = '~1.3.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades .x major ranges without pinning', async () => {
@@ -385,7 +410,7 @@ describe(getName(__filename), () => {
       config.currentValue = '0.x';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades .x minor ranges without pinning', async () => {
@@ -393,7 +418,7 @@ describe(getName(__filename), () => {
       config.currentValue = '1.3.x';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades .x complex minor ranges without pinning', async () => {
@@ -401,7 +426,7 @@ describe(getName(__filename), () => {
       config.currentValue = '1.2.x - 1.3.x';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades shorthand major ranges without pinning', async () => {
@@ -409,7 +434,7 @@ describe(getName(__filename), () => {
       config.currentValue = '0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades shorthand minor ranges without pinning', async () => {
@@ -417,7 +442,7 @@ describe(getName(__filename), () => {
       config.currentValue = '1.3';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades multiple tilde ranges without pinning', async () => {
@@ -425,7 +450,7 @@ describe(getName(__filename), () => {
       config.currentValue = '~0.7.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades multiple caret ranges without pinning', async () => {
@@ -433,7 +458,7 @@ describe(getName(__filename), () => {
       config.currentValue = '^0.7.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports complex ranges', async () => {
@@ -441,7 +466,7 @@ describe(getName(__filename), () => {
       config.currentValue = '^0.7.0 || ^0.8.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toHaveLength(2);
       expect(res.updates[0]).toMatchSnapshot();
@@ -451,7 +476,8 @@ describe(getName(__filename), () => {
       config.currentValue = '^1.0.0 || ^2.0.0';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -461,7 +487,8 @@ describe(getName(__filename), () => {
       config.currentValue = '1.x - 2.x';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -471,7 +498,8 @@ describe(getName(__filename), () => {
       config.currentValue = '1.x || 2.x';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -481,7 +509,8 @@ describe(getName(__filename), () => {
       config.currentValue = '1 || 2';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -491,7 +520,7 @@ describe(getName(__filename), () => {
       config.currentValue = '~1.2.0 || ~1.3.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('returns nothing for greater than ranges', async () => {
@@ -499,7 +528,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>= 0.7.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(0);
     });
     it('upgrades less than equal ranges without pinning', async () => {
@@ -507,7 +536,7 @@ describe(getName(__filename), () => {
       config.currentValue = '<= 0.7.2';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades less than ranges without pinning', async () => {
@@ -515,7 +544,7 @@ describe(getName(__filename), () => {
       config.currentValue = '< 0.7.2';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades less than major ranges', async () => {
@@ -523,7 +552,7 @@ describe(getName(__filename), () => {
       config.currentValue = '< 1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades less than equal minor ranges', async () => {
@@ -531,7 +560,7 @@ describe(getName(__filename), () => {
       config.currentValue = '<= 1.3';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades equal minor ranges', async () => {
@@ -539,7 +568,7 @@ describe(getName(__filename), () => {
       config.currentValue = '=1.3.1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades less than equal major ranges', async () => {
@@ -548,7 +577,7 @@ describe(getName(__filename), () => {
       config.currentValue = '<= 1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('upgrades major less than equal ranges', async () => {
@@ -556,7 +585,7 @@ describe(getName(__filename), () => {
       config.currentValue = '<= 1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].newValue).toEqual('<= 1.4.1');
@@ -566,7 +595,7 @@ describe(getName(__filename), () => {
       config.currentValue = '< 1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].newValue).toEqual('< 2.0.0');
@@ -576,7 +605,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>= 0.5.0 < 1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].newValue).toEqual('>= 0.5.0 < 2.0.0');
@@ -586,7 +615,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>= 0.5.0 <0.8';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].newValue).toEqual('>= 0.5.0 <0.10');
@@ -597,7 +626,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>= 0.5.0 <= 0.8.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates[0].newValue).toEqual('>= 0.5.0 <= 0.9.7');
@@ -608,7 +637,7 @@ describe(getName(__filename), () => {
       config.currentValue = '<= 0.8.0 >= 0.5.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
     });
@@ -617,14 +646,17 @@ describe(getName(__filename), () => {
       config.currentValue = '1.4.1';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('should ignore unstable versions if the current version is stable', async () => {
       config.currentValue = '2.5.16';
       config.depName = 'vue';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/vue').reply(200, vueJson);
+      httpMock
+        .scope('https://registry.npmjs.org')
+        .get('/vue')
+        .reply(200, vueJson);
       expect((await lookup.lookupUpdates(config)).updates).toHaveLength(0);
     });
     it('should ignore unstable versions from datasource', async () => {
@@ -647,12 +679,79 @@ describe(getName(__filename), () => {
       });
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
+
+    it('should return pendingChecks', async () => {
+      config.currentValue = '1.4.4';
+      config.depName = 'some/action';
+      config.datasource = datasourceGithubReleases.id;
+      config.stabilityDays = 14;
+      config.internalChecksFilter = 'strict';
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      githubReleases.getReleases.mockResolvedValueOnce({
+        releases: [
+          {
+            version: '1.4.4',
+          },
+          {
+            version: '1.4.5',
+            releaseTimestamp: lastWeek.toISOString(),
+          },
+          {
+            version: '1.4.6',
+            releaseTimestamp: yesterday.toISOString(),
+          },
+        ],
+      });
+      const res = await lookup.lookupUpdates(config);
+      expect(res.updates).toHaveLength(1);
+      expect(res.updates[0].newVersion).toEqual('1.4.6');
+      expect(res.updates[0].pendingChecks).toBe(true);
+    });
+
+    it('should return pendingVersions', async () => {
+      config.currentValue = '1.4.4';
+      config.depName = 'some/action';
+      config.datasource = datasourceGithubReleases.id;
+      config.stabilityDays = 3;
+      config.internalChecksFilter = 'strict';
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      githubReleases.getReleases.mockResolvedValueOnce({
+        releases: [
+          {
+            version: '1.4.4',
+          },
+          {
+            version: '1.4.5',
+            releaseTimestamp: lastWeek.toISOString(),
+          },
+          {
+            version: '1.4.6',
+            releaseTimestamp: yesterday.toISOString(),
+          },
+        ],
+      });
+      const res = await lookup.lookupUpdates(config);
+      expect(res.updates).toHaveLength(1);
+      expect(res.updates[0].newVersion).toEqual('1.4.5');
+      expect(res.updates[0].pendingVersions).toHaveLength(1);
+    });
+
     it('should allow unstable versions if the ignoreUnstable=false', async () => {
       config.currentValue = '2.5.16';
       config.ignoreUnstable = false;
+      config.respectLatest = false;
       config.depName = 'vue';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/vue').reply(200, vueJson);
+      httpMock
+        .scope('https://registry.npmjs.org')
+        .get('/vue')
+        .reply(200, vueJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
       expect(res.updates).toHaveLength(1);
@@ -662,7 +761,8 @@ describe(getName(__filename), () => {
       config.currentValue = '3.1.0-dev.20180731';
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -674,7 +774,8 @@ describe(getName(__filename), () => {
       config.currentValue = '3.0.1-insiders.20180726';
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -687,7 +788,8 @@ describe(getName(__filename), () => {
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
       config.followTag = 'insiders';
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -701,7 +803,8 @@ describe(getName(__filename), () => {
       config.datasource = datasourceNpmId;
       config.followTag = 'insiders';
       config.rollbackPrs = true;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -714,7 +817,8 @@ describe(getName(__filename), () => {
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
       config.followTag = 'insiders';
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -727,7 +831,8 @@ describe(getName(__filename), () => {
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
       config.followTag = 'insiders';
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -738,7 +843,8 @@ describe(getName(__filename), () => {
       config.depName = 'typescript';
       config.datasource = datasourceNpmId;
       config.followTag = 'foo';
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/typescript')
         .reply(200, typescriptJson);
       const res = await lookup.lookupUpdates(config);
@@ -754,7 +860,8 @@ describe(getName(__filename), () => {
       config.currentValue = '~0.0.34';
       config.depName = '@types/helmet';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/@types%2Fhelmet')
         .reply(200, helmetJson);
       expect((await lookup.lookupUpdates(config)).updates).toEqual([]);
@@ -764,7 +871,8 @@ describe(getName(__filename), () => {
       config.currentValue = '^0.0.34';
       config.depName = '@types/helmet';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/@types%2Fhelmet')
         .reply(200, helmetJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -774,7 +882,8 @@ describe(getName(__filename), () => {
       config.depName = 'coffeelint';
       config.datasource = datasourceNpmId;
       config.rollbackPrs = true;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/coffeelint')
         .reply(200, coffeelintJson);
       const res = await lookup.lookupUpdates(config);
@@ -785,7 +894,8 @@ describe(getName(__filename), () => {
       config.currentValue = '1.0.0';
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       const res = await lookup.lookupUpdates(config);
@@ -796,7 +906,8 @@ describe(getName(__filename), () => {
       config.separateMultipleMajor = true;
       config.depName = 'webpack';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org')
+      httpMock
+        .scope('https://registry.npmjs.org')
         .get('/webpack')
         .reply(200, webpackJson);
       const res = await lookup.lookupUpdates(config);
@@ -807,7 +918,10 @@ describe(getName(__filename), () => {
       config.rangeStrategy = 'replace';
       config.depName = 'next';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/next').reply(200, nextJson);
+      httpMock
+        .scope('https://registry.npmjs.org')
+        .get('/next')
+        .reply(200, nextJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toHaveLength(0);
     });
@@ -816,7 +930,7 @@ describe(getName(__filename), () => {
       config.currentValue = '^1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports in-range tilde updates', async () => {
@@ -825,7 +939,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.separateMinorPatch = true;
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports in-range tilde patch updates', async () => {
@@ -834,7 +948,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.separateMinorPatch = true;
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports in-range gte updates', async () => {
@@ -842,7 +956,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>=1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('supports majorgte updates', async () => {
@@ -851,7 +965,7 @@ describe(getName(__filename), () => {
       config.depName = 'q';
       config.datasource = datasourceNpmId;
       config.separateMajorMinor = false;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('rejects in-range unsupported operator', async () => {
@@ -859,7 +973,7 @@ describe(getName(__filename), () => {
       config.currentValue = '>1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('rejects non-fully specified in-range updates', async () => {
@@ -867,7 +981,7 @@ describe(getName(__filename), () => {
       config.currentValue = '1.x';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('rejects complex range in-range updates', async () => {
@@ -875,7 +989,7 @@ describe(getName(__filename), () => {
       config.currentValue = '^0.9.0 || ^1.0.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('replaces non-range in-range updates', async () => {
@@ -884,7 +998,7 @@ describe(getName(__filename), () => {
       config.packageFile = 'package.json';
       config.rangeStrategy = 'bump';
       config.currentValue = '1.0.0';
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('handles github 404', async () => {
@@ -892,7 +1006,7 @@ describe(getName(__filename), () => {
       config.datasource = datasourceGithubTagsId;
       config.packageFile = 'package.json';
       config.currentValue = '1.0.0';
-      nock('https://pypi.org').get('/pypi/foo/json').reply(404);
+      httpMock.scope('https://pypi.org').get('/pypi/foo/json').reply(404);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('handles pypi 404', async () => {
@@ -900,7 +1014,8 @@ describe(getName(__filename), () => {
       config.datasource = datasourcePypiId;
       config.packageFile = 'requirements.txt';
       config.currentValue = '1.0.0';
-      nock('https://api.github.com')
+      httpMock
+        .scope('https://api.github.com')
         .get('/repos/some/repo/git/refs/tags?per_page=100')
         .reply(404);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
@@ -911,7 +1026,10 @@ describe(getName(__filename), () => {
       config.packageFile = 'composer.json';
       config.currentValue = '1.0.0';
       config.registryUrls = ['https://packagist.org'];
-      nock('https://packagist.org').get('/packages/foo/bar.json').reply(404);
+      httpMock
+        .scope('https://packagist.org')
+        .get('/packages/foo/bar.json')
+        .reply(404);
       expect((await lookup.lookupUpdates(config)).updates).toMatchSnapshot();
     });
     it('handles unknown datasource', async () => {
@@ -930,9 +1048,9 @@ describe(getName(__filename), () => {
       config.lockedVersion = '0.9.4';
       config.currentValue = '~=0.9';
       config.depName = 'q';
-      // TODO: we are using npm as source to test pep440
+      // TODO: we are using npm as source to test pep440 (#9721)
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res.updates).toMatchSnapshot();
     });
@@ -940,7 +1058,7 @@ describe(getName(__filename), () => {
       config.currentValue = '1.3.0';
       config.depName = 'q';
       config.datasource = datasourceNpmId;
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res).toMatchSnapshot();
       expect(res.sourceUrl).toBeDefined();
@@ -952,7 +1070,10 @@ describe(getName(__filename), () => {
       const returnJson = JSON.parse(JSON.stringify(qJson));
       returnJson.name = 'q2';
       returnJson.versions['1.4.1'].deprecated = 'true';
-      nock('https://registry.npmjs.org').get('/q2').reply(200, returnJson);
+      httpMock
+        .scope('https://registry.npmjs.org')
+        .get('/q2')
+        .reply(200, returnJson);
       const res = await lookup.lookupUpdates(config);
       expect(res).toMatchSnapshot();
       expect(res.updates[0].newVersion).toEqual('1.4.0');
@@ -968,7 +1089,10 @@ describe(getName(__filename), () => {
         repository: { url: null, directory: 'test' },
       };
 
-      nock('https://registry.npmjs.org').get('/q3').reply(200, returnJson);
+      httpMock
+        .scope('https://registry.npmjs.org')
+        .get('/q3')
+        .reply(200, returnJson);
       const res = await lookup.lookupUpdates(config);
       expect(res).toMatchSnapshot();
       expect(res.updates[0].newVersion).toEqual('1.4.1');
@@ -1164,7 +1288,7 @@ describe(getName(__filename), () => {
           allowedVersions: '< 1.4.0',
         },
       ];
-      nock('https://registry.npmjs.org').get('/q').reply(200, qJson);
+      httpMock.scope('https://registry.npmjs.org').get('/q').reply(200, qJson);
       const res = await lookup.lookupUpdates(config);
       expect(res).toMatchSnapshot();
     });

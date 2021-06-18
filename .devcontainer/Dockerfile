@@ -1,6 +1,5 @@
-FROM containerbase/buildpack@sha256:8d0bd58e02d271304e6ab378aede3927dd2cfb98cdae59d0e8bf6f66a5393963
+FROM containerbase/node:14.17.0@sha256:39419f23c62d0fec2f18255d2c822d499a0d2a9cd9f6fcce4e1f05d6edce111a
 
-# renovate: datasource=docker versioning=docker
-RUN install-tool node 14.16.1 \
+
 # renovate: datasource=npm
-  && install-tool yarn 1.22.10
+RUN install-tool yarn 1.22.10

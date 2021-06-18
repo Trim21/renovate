@@ -10,18 +10,13 @@ const hostRules: any = _hostRules;
 const githubApiHost = 'https://api.github.com';
 const githubEnterpriseApiHost = 'https://git.enterprise.com';
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   beforeEach(() => {
-    httpMock.reset();
-    httpMock.setup();
     jest.resetAllMocks();
     hostRules.hosts = jest.fn(() => []);
     hostRules.find.mockReturnValue({
       token: 'some-token',
     });
-  });
-  afterEach(() => {
-    httpMock.reset();
   });
 
   describe('getDigest', () => {
@@ -110,16 +105,11 @@ describe(getName(__filename), () => {
   });
   describe('getReleases', () => {
     beforeEach(() => {
-      httpMock.reset();
-      httpMock.setup();
       jest.resetAllMocks();
       hostRules.hosts = jest.fn(() => []);
       hostRules.find.mockReturnValue({
         token: 'some-token',
       });
-    });
-    afterEach(() => {
-      httpMock.reset();
     });
 
     const depName = 'some/dep2';

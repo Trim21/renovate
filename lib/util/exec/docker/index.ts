@@ -1,3 +1,4 @@
+import is from '@sindresorhus/is';
 import { getAdminConfig } from '../../../config/admin';
 import { SYSTEM_INSUFFICIENT_MEMORY } from '../../../constants/error-messages';
 import { getPkgReleases } from '../../../datasource';
@@ -6,7 +7,6 @@ import * as versioning from '../../../versioning';
 import { ensureTrailingSlash } from '../../url';
 import {
   DockerOptions,
-  ExecConfig,
   Opt,
   VolumeOption,
   VolumesPair,
@@ -31,12 +31,12 @@ export function resetPrefetchedImages(): void {
 }
 
 function expandVolumeOption(x: VolumeOption): VolumesPair | null {
-  if (typeof x === 'string') {
+  if (is.nonEmptyString(x)) {
     return [x, x];
   }
   if (Array.isArray(x) && x.length === 2) {
     const [from, to] = x;
-    if (typeof from === 'string' && typeof to === 'string') {
+    if (is.nonEmptyString(from) && is.nonEmptyString(to)) {
       return [from, to];
     }
   }
@@ -151,9 +151,14 @@ export async function removeDockerContainer(
 }
 
 // istanbul ignore next
-export async function removeDanglingContainers(prefix: string): Promise<void> {
+export async function removeDanglingContainers(): Promise<void> {
+  const { binarySource, dockerChildPrefix } = getAdminConfig();
+  if (binarySource !== 'docker') {
+    return;
+  }
+
   try {
-    const containerLabel = getContainerLabel(prefix);
+    const containerLabel = getContainerLabel(dockerChildPrefix);
     const res = await rawExec(
       `docker ps --filter label=${containerLabel} -aq`,
       {
@@ -187,16 +192,20 @@ export async function removeDanglingContainers(prefix: string): Promise<void> {
 
 export async function generateDockerCommand(
   commands: string[],
-  options: DockerOptions,
-  config: ExecConfig
+  options: DockerOptions
 ): Promise<string> {
   const { envVars, cwd, tagScheme, tagConstraint } = options;
   let image = options.image;
   const volumes = options.volumes || [];
   const preCommands = options.preCommands || [];
   const postCommands = options.postCommands || [];
-  const { localDir, cacheDir } = config;
-  const { dockerUser, dockerChildPrefix, dockerImagePrefix } = getAdminConfig();
+  const {
+    localDir,
+    cacheDir,
+    dockerUser,
+    dockerChildPrefix,
+    dockerImagePrefix,
+  } = getAdminConfig();
   const result = ['docker run --rm'];
   const containerName = getContainerName(image, dockerChildPrefix);
   const containerLabel = getContainerLabel(dockerChildPrefix);

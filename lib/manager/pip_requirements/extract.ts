@@ -4,6 +4,7 @@ import { getAdminConfig } from '../../config/admin';
 import * as datasourcePypi from '../../datasource/pypi';
 import { logger } from '../../logger';
 import { SkipReason } from '../../types';
+import { readLocalFile } from '../../util/fs';
 import { isSkipComment } from '../../util/ignore';
 import type { ExtractConfig, PackageDependency, PackageFile } from '../types';
 
@@ -63,7 +64,8 @@ export function extractPackageFile(
       if (!matches) {
         return null;
       }
-      const [, depName, , currentValue] = matches;
+      const [, depName, , currVal] = matches;
+      const currentValue = currVal.trim();
       dep = {
         ...dep,
         depName,
@@ -71,7 +73,7 @@ export function extractPackageFile(
         datasource: datasourcePypi.id,
       };
       if (currentValue?.startsWith('==')) {
-        dep.currentVersion = currentValue.replace(/^==/, '');
+        dep.currentVersion = currentValue.replace(/^==\s*/, '');
       }
       return dep;
     })
@@ -99,4 +101,27 @@ export function extractPackageFile(
     });
   }
   return res;
+}
+
+export async function extractAllPackageFiles(
+  config: ExtractConfig,
+  packageFiles: string[]
+): Promise<PackageFile[]> {
+  const requirementsFiles: PackageFile[] = [];
+  for (const packageFile of packageFiles) {
+    const content = await readLocalFile(packageFile, 'utf8');
+    // istanbul ignore else
+    if (content) {
+      const deps = extractPackageFile(content, packageFile, config);
+      if (deps) {
+        requirementsFiles.push({
+          packageFile,
+          ...deps,
+        });
+      }
+    } else {
+      logger.debug({ packageFile }, 'requirements file has no content');
+    }
+  }
+  return requirementsFiles;
 }

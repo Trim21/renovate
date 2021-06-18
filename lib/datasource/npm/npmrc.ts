@@ -8,11 +8,10 @@ import { logger } from '../../logger';
 import type { OutgoingHttpHeaders } from '../../util/http/types';
 import { maskToken } from '../../util/mask';
 import { add } from '../../util/sanitize';
+import type { Npmrc, PackageResolution } from './types';
 
 let npmrc: Record<string, any> = {};
 let npmrcRaw = '';
-
-export type Npmrc = Record<string, any>;
 
 export function getNpmrc(): Npmrc | null {
   return npmrc;
@@ -36,7 +35,7 @@ function envReplace(value: any, env = process.env): any {
 }
 
 const envRe = /(\\*)\$\{([^}]+)\}/;
-// TODO: better add to host rules
+// TODO: better add to host rules (#9588)
 function sanitize(key: string, val: string): void {
   if (!val || envRe.test(val)) {
     return;
@@ -92,12 +91,6 @@ export function setNpmrc(input?: string): void {
     npmrc = {};
     npmrcRaw = '';
   }
-}
-
-export interface PackageResolution {
-  headers: OutgoingHttpHeaders;
-  packageUrl: string;
-  registryUrl: string;
 }
 
 export function resolvePackage(packageName: string): PackageResolution {

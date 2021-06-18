@@ -23,17 +23,12 @@ const responseBody = [
   },
 ];
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   beforeEach(() => {
     hostRules.hosts.mockReturnValue([]);
     hostRules.find.mockReturnValue({
       token: 'some-token',
     });
-    httpMock.setup();
-  });
-
-  afterEach(() => {
-    httpMock.reset();
   });
 
   describe('getReleases', () => {

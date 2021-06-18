@@ -8,7 +8,7 @@ import { ExternalHostError } from '../../types/errors/external-host-error';
 import { regEx } from '../../util/regex';
 import * as massage from '../massage';
 import * as migration from '../migration';
-import type { GlobalConfig, RenovateConfig } from '../types';
+import type { AllConfig, RenovateConfig } from '../types';
 import { mergeChildConfig } from '../utils';
 import { removedPresets } from './common';
 import * as gitea from './gitea';
@@ -17,7 +17,7 @@ import * as gitlab from './gitlab';
 import * as internal from './internal';
 import * as local from './local';
 import * as npm from './npm';
-import type { PresetApi } from './types';
+import type { ParsedPreset, PresetApi } from './types';
 import {
   PRESET_DEP_NOT_FOUND,
   PRESET_INVALID,
@@ -175,13 +175,8 @@ export async function getPreset(
   if (newPreset === null) {
     return {};
   }
-  const {
-    presetSource,
-    packageName,
-    presetPath,
-    presetName,
-    params,
-  } = parsePreset(preset);
+  const { presetSource, packageName, presetPath, presetName, params } =
+    parsePreset(preset);
   let presetConfig = await presetSources[presetSource].getPreset({
     packageName,
     presetPath,
@@ -227,11 +222,11 @@ export async function getPreset(
 }
 
 export async function resolveConfigPresets(
-  inputConfig: GlobalConfig,
+  inputConfig: AllConfig,
   baseConfig?: RenovateConfig,
   ignorePresets?: string[],
   existingPresets: string[] = []
-): Promise<GlobalConfig> {
+): Promise<AllConfig> {
   if (!ignorePresets || ignorePresets.length === 0) {
     ignorePresets = inputConfig.ignorePresets || []; // eslint-disable-line
   }
@@ -239,7 +234,7 @@ export async function resolveConfigPresets(
     { config: inputConfig, existingPresets },
     'resolveConfigPresets'
   );
-  let config: GlobalConfig = {};
+  let config: AllConfig = {};
   // First, merge all the preset configs from left to right
   if (inputConfig.extends?.length) {
     for (const preset of inputConfig.extends) {
@@ -344,12 +339,4 @@ export async function resolveConfigPresets(
   logger.trace({ config: inputConfig }, 'Input config');
   logger.trace({ config }, 'Resolved config');
   return config;
-}
-
-export interface ParsedPreset {
-  presetSource: string;
-  packageName: string;
-  presetPath?: string;
-  presetName: string;
-  params?: string[];
 }

@@ -6,7 +6,7 @@ function tokenTypes(input): string[] {
   return extractRawTokens(input).map((token) => token.type);
 }
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   it('extractTokens', () => {
     const samples = {
       ' ': [TokenType.Space],
@@ -35,7 +35,7 @@ describe(getName(__filename), () => {
         TokenType.RightBrace,
         TokenType.RightBrace,
       ],
-      '@': [TokenType.UnknownLexeme],
+      '@': [TokenType.UnknownFragment],
       "'\\''": [
         TokenType.SingleQuotedStart,
         TokenType.EscapedChar,
@@ -54,23 +54,22 @@ describe(getName(__filename), () => {
       ],
       "'x'": [
         TokenType.SingleQuotedStart,
-        TokenType.Char,
+        TokenType.Chars,
         TokenType.SingleQuotedFinish,
       ],
       "'\n'": [
         TokenType.SingleQuotedStart,
-        TokenType.Char,
+        TokenType.Chars,
         TokenType.SingleQuotedFinish,
       ],
       "'$x'": [
         TokenType.SingleQuotedStart,
-        TokenType.Char,
-        TokenType.Char,
+        TokenType.Chars,
         TokenType.SingleQuotedFinish,
       ],
       "''''''": ['tripleQuotedStart', 'tripleQuotedFinish'],
-      "'''x'''": ['tripleQuotedStart', TokenType.Char, 'tripleQuotedFinish'],
-      "'''\n'''": ['tripleQuotedStart', TokenType.Char, 'tripleQuotedFinish'],
+      "'''x'''": ['tripleQuotedStart', TokenType.Chars, 'tripleQuotedFinish'],
+      "'''\n'''": ['tripleQuotedStart', TokenType.Chars, 'tripleQuotedFinish'],
       "'''\\''''": [
         'tripleQuotedStart',
         TokenType.EscapedChar,
@@ -106,12 +105,12 @@ describe(getName(__filename), () => {
       ],
       '"x"': [
         TokenType.DoubleQuotedStart,
-        TokenType.Char,
+        TokenType.Chars,
         TokenType.DoubleQuotedFinish,
       ],
       '"\n"': [
         TokenType.DoubleQuotedStart,
-        TokenType.Char,
+        TokenType.Chars,
         TokenType.DoubleQuotedFinish,
       ],
       // eslint-disable-next-line no-template-curly-in-string
@@ -130,9 +129,7 @@ describe(getName(__filename), () => {
       '"${x()}"': [
         TokenType.DoubleQuotedStart,
         TokenType.IgnoredInterpolationStart,
-        TokenType.UnknownLexeme,
-        TokenType.UnknownLexeme,
-        TokenType.UnknownLexeme,
+        TokenType.UnknownFragment,
         TokenType.RightBrace,
         TokenType.DoubleQuotedFinish,
       ],
@@ -140,7 +137,7 @@ describe(getName(__filename), () => {
       '"${x{}}"': [
         TokenType.DoubleQuotedStart,
         TokenType.IgnoredInterpolationStart,
-        TokenType.UnknownLexeme,
+        TokenType.UnknownFragment,
         TokenType.LeftBrace,
         TokenType.RightBrace,
         TokenType.RightBrace,

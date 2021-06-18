@@ -1,7 +1,8 @@
 import { getName } from '../../../test/util';
-import { TerraformDependencyTypes, getTerraformDependencyType } from './util';
+import { TerraformDependencyTypes } from './common';
+import { getTerraformDependencyType } from './util';
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('getTerraformDependencyType()', () => {
     it('returns TerraformDependencyTypes.module', () => {
       expect(getTerraformDependencyType('module')).toBe(

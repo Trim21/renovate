@@ -1,6 +1,4 @@
-import { readFileSync } from 'fs';
-import upath from 'upath';
-import { getName } from '../../../../test/util';
+import { getName, loadFixture } from '../../../../test/util';
 import { getConfig } from '../../../config/defaults';
 import * as _fs from '../../../util/fs';
 import * as npmExtract from '.';
@@ -10,20 +8,16 @@ const fs: any = _fs;
 // TODO: fix types
 const defaultConfig = getConfig();
 
-function readFixture(fixture: string) {
-  return readFileSync(
-    upath.resolve(__dirname, `../__fixtures__/${fixture}`),
-    'utf8'
-  );
-}
+const input01Content = loadFixture('inputs/01.json', '..');
+const workspacesContent = loadFixture('inputs/workspaces.json', '..');
+const workspacesSimpleContent = loadFixture(
+  'inputs/workspaces-simple.json',
+  '..'
+);
+const vendorisedContent = loadFixture('is-object.json', '..');
+const invalidNameContent = loadFixture('invalid-name.json', '..');
 
-const input01Content = readFixture('inputs/01.json');
-const workspacesContent = readFixture('inputs/workspaces.json');
-const workspacesSimpleContent = readFixture('inputs/workspaces-simple.json');
-const vendorisedContent = readFixture('is-object.json');
-const invalidNameContent = readFixture('invalid-name.json');
-
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('.extractPackageFile()', () => {
     beforeEach(() => {
       fs.readLocalFile = jest.fn(() => null);
@@ -324,6 +318,12 @@ describe(getName(__filename), () => {
       expect(res).toMatchSnapshot();
     });
     it('extracts npm package alias', async () => {
+      fs.readLocalFile = jest.fn((fileName) => {
+        if (fileName === 'package-lock.json') {
+          return '{}';
+        }
+        return null;
+      });
       const pJson = {
         dependencies: {
           a: 'npm:foo@1',

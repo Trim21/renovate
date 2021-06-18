@@ -35,13 +35,8 @@ function getTableValues(
   if (!upgrade.commitBodyTable) {
     return null;
   }
-  const {
-    datasource,
-    lookupName,
-    depName,
-    currentVersion,
-    newVersion,
-  } = upgrade;
+  const { datasource, lookupName, depName, currentVersion, newVersion } =
+    upgrade;
   const name = lookupName || depName;
   if (datasource && name && currentVersion && newVersion) {
     return [datasource, name, currentVersion, newVersion];
@@ -60,8 +55,13 @@ function getTableValues(
 }
 
 export function generateBranchConfig(
-  branchUpgrades: BranchUpgradeConfig[]
+  upgrades: BranchUpgradeConfig[]
 ): BranchConfig {
+  let branchUpgrades = upgrades;
+  if (!branchUpgrades.every((upgrade) => upgrade.pendingChecks)) {
+    // If the branch isn't pending, then remove any upgrades within which *are*
+    branchUpgrades = branchUpgrades.filter((upgrade) => !upgrade.pendingChecks);
+  }
   logger.trace({ config: branchUpgrades }, 'generateBranchConfig');
   let config: BranchConfig = {
     upgrades: [],
@@ -221,7 +221,10 @@ export function generateBranchConfig(
         upgrade.updateType === 'minor' && upgrade.separateMinorPatch
           ? ' (minor)'
           : '';
-      upgrade.prTitle += upgrade.updateType === 'patch' ? ' (patch)' : '';
+      upgrade.prTitle +=
+        upgrade.updateType === 'patch' && upgrade.separateMinorPatch
+          ? ' (patch)'
+          : '';
     }
     // Compile again to allow for nested templates
     upgrade.prTitle = template.compile(upgrade.prTitle, upgrade);
@@ -273,7 +276,7 @@ export function generateBranchConfig(
     });
   }
   // Now assign first upgrade's config as branch config
-  config = { ...config, ...config.upgrades[0], releaseTimestamp }; // TODO: fixme
+  config = { ...config, ...config.upgrades[0], releaseTimestamp }; // TODO: fixme (#9666)
   config.reuseLockFiles = config.upgrades.every(
     (upgrade) => upgrade.updateType !== 'lockFileMaintenance'
   );

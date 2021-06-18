@@ -1,30 +1,21 @@
-import fs from 'fs';
 import { getPkgReleases } from '..';
 import * as httpMock from '../../../test/http-mock';
-import { getName } from '../../../test/util';
-import { id as datasource } from '.';
+import { getName, loadFixture } from '../../../test/util';
+import { HelmDatasource } from '.';
 
 // Truncated index.yaml file
-const indexYaml = fs.readFileSync(
-  'lib/datasource/helm/__fixtures__/index.yaml',
-  'utf8'
-);
+const indexYaml = loadFixture('index.yaml');
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('getReleases', () => {
     beforeEach(() => {
       jest.resetAllMocks();
-      httpMock.setup();
-    });
-
-    afterEach(() => {
-      httpMock.reset();
     });
 
     it('returns null if lookupName was not provided', async () => {
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: undefined,
           registryUrls: ['https://example-repository.com'],
         })
@@ -33,7 +24,7 @@ describe(getName(__filename), () => {
     it('returns null if repository was not provided', async () => {
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'some_chart',
           registryUrls: [],
         })
@@ -46,7 +37,7 @@ describe(getName(__filename), () => {
         .reply(200, null);
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'non_existent_chart',
           registryUrls: ['https://example-repository.com'],
         })
@@ -60,7 +51,7 @@ describe(getName(__filename), () => {
         .reply(200, undefined);
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'non_existent_chart',
           registryUrls: ['https://example-repository.com'],
         })
@@ -74,7 +65,7 @@ describe(getName(__filename), () => {
         .reply(404);
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'some_chart',
           registryUrls: ['https://example-repository.com'],
         })
@@ -89,7 +80,7 @@ describe(getName(__filename), () => {
       let e;
       try {
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'some_chart',
           registryUrls: ['https://example-repository.com'],
         });
@@ -107,7 +98,7 @@ describe(getName(__filename), () => {
         .replyWithError('');
       expect(
         await getPkgReleases({
-          datasource,
+          datasource: HelmDatasource.id,
           depName: 'some_chart',
           registryUrls: ['https://example-repository.com'],
         })
@@ -120,7 +111,7 @@ describe(getName(__filename), () => {
         .get('/index.yaml')
         .reply(200, '# A comment');
       const releases = await getPkgReleases({
-        datasource,
+        datasource: HelmDatasource.id,
         depName: 'non_existent_chart',
         registryUrls: ['https://example-repository.com'],
       });
@@ -139,7 +130,7 @@ describe(getName(__filename), () => {
         .get('/index.yaml')
         .reply(200, res);
       const releases = await getPkgReleases({
-        datasource,
+        datasource: HelmDatasource.id,
         depName: 'non_existent_chart',
         registryUrls: ['https://example-repository.com'],
       });
@@ -152,7 +143,7 @@ describe(getName(__filename), () => {
         .get('/index.yaml')
         .reply(200, indexYaml);
       const releases = await getPkgReleases({
-        datasource,
+        datasource: HelmDatasource.id,
         depName: 'non_existent_chart',
         registryUrls: ['https://example-repository.com'],
       });
@@ -165,7 +156,7 @@ describe(getName(__filename), () => {
         .get('/index.yaml')
         .reply(200, indexYaml);
       const releases = await getPkgReleases({
-        datasource,
+        datasource: HelmDatasource.id,
         depName: 'ambassador',
         registryUrls: ['https://example-repository.com'],
       });
@@ -179,7 +170,7 @@ describe(getName(__filename), () => {
         .get('/subdir/index.yaml')
         .reply(200, indexYaml);
       await getPkgReleases({
-        datasource,
+        datasource: HelmDatasource.id,
         depName: 'ambassador',
         registryUrls: ['https://example-repository.com/subdir'],
       });

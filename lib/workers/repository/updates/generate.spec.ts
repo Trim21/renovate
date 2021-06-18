@@ -8,7 +8,7 @@ beforeEach(() => {
   jest.resetAllMocks();
 });
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('generateBranchConfig()', () => {
     it('does not group single upgrade', () => {
       const branch = [
@@ -502,6 +502,7 @@ describe(getName(__filename), () => {
           newValue: '0.6.0',
           isGroup: true,
           separateMajorMinor: true,
+          separateMinorPatch: true,
           updateType: 'patch' as UpdateType,
           fileReplacePosition: 0,
         },
@@ -544,6 +545,47 @@ describe(getName(__filename), () => {
       expect(
         res.upgrades.map((upgrade) => upgrade.fileReplacePosition)
       ).toStrictEqual([undefined, undefined, 4, 1]);
+    });
+    it('passes through pendingChecks', () => {
+      const branch = [
+        {
+          depName: 'some-dep',
+          groupName: 'some-group',
+          branchName: 'some-branch',
+          prTitle: 'some-title',
+          pendingChecks: true,
+        },
+        {
+          depName: 'some-dep',
+          groupName: 'some-group',
+          branchName: 'some-branch',
+          prTitle: 'some-title',
+          pendingChecks: true,
+        },
+      ];
+      const res = generateBranchConfig(branch);
+      expect(res.pendingChecks).toBe(true);
+      expect(res.upgrades).toHaveLength(2);
+    });
+    it('filters pendingChecks', () => {
+      const branch = [
+        {
+          depName: 'some-dep',
+          groupName: 'some-group',
+          branchName: 'some-branch',
+          prTitle: 'some-title',
+          pendingChecks: true,
+        },
+        {
+          depName: 'some-dep',
+          groupName: 'some-group',
+          branchName: 'some-branch',
+          prTitle: 'some-title',
+        },
+      ];
+      const res = generateBranchConfig(branch);
+      expect(res.pendingChecks).toBeUndefined();
+      expect(res.upgrades).toHaveLength(1);
     });
   });
 });

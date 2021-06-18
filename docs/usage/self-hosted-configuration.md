@@ -200,6 +200,14 @@ It will also override any settings in `packageRules`.
 ## forkMode
 
 You probably have no need for this option - it is an experimental setting for the Renovate hosted GitHub App.
+If this is set to `true` then Renovate will fork the repository into the personal space of the person owning the Personal Access Token.
+
+## forkToken
+
+You probably have no need for this option - it is an experimental setting for the Renovate hosted GitHub App.
+This should be set to a Personal Access Token (GitHub only) when `forkMode` is set to `true`.
+Renovate will use this token to fork the repository into the personal space of the person owning the Personal Access Token.
+Renovate will then create branches on the fork and opens Pull Requests on the parent repository.
 
 ## gitAuthor
 
@@ -208,6 +216,13 @@ The `gitAuthor` option accepts a RFC5322-compliant string.
 
 **Note** We strongly recommend that the Git author email you use is unique to Renovate.
 Otherwise, if another bot or human shares the same email and pushes to one of Renovate's branches then Renovate will mistake the branch as unmodified and potentially force push over the changes.
+
+## gitNoVerify
+
+Controls when Renovate passes the `--no-verify` flag to `git`.
+The flag can be passed to `git commit` and/or `git push`.
+Read the documentation for [git commit --no-verify](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---no-verify) and [git push --no-verify](https://git-scm.com/docs/git-push#Documentation/git-push.txt---no-verify) to learn exactly what each flag does.
+To learn more about Git hooks, read the [Pro Git 2 book, section on Git Hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks).
 
 ## gitPrivateKey
 
@@ -231,6 +246,24 @@ If left as default (null), a random short ID will be selected.
 ## logFile
 
 ## logFileLevel
+
+## migratePresets
+
+Use this if you have repositories that extend from a particular preset, which has now been renamed or removed.
+This is handy if you have a large number of repositories that all extend from a particular preset which you want to rename, without the hassle of manually updating every repository individually.
+Use an empty string to indicate that the preset should be ignored rather than replaced.
+
+Example:
+
+```js
+modules.exports = {
+  migratePresets: {
+    '@company': 'local>org/renovate-config',
+  },
+};
+```
+
+In the above example any reference to the `@company` preset will be replaced with `local>org/renovate-config`.
 
 ## onboarding
 
@@ -323,6 +356,8 @@ Warning: this is an experimental feature and may be modified or removed in a fut
 
 ## requireConfig
 
+If this is set to `false`, it means that Renovate won't require a config file such as `renovate.json` to be present in each repository and will run even if one is missing.
+
 ## secrets
 
 Secrets may be configured by a bot admin in `config.js`, which will then make them available for templating within repository configs.
@@ -357,7 +392,7 @@ It could then be used in a repository config or preset like so:
 {
   "hostRules": [
     {
-      "domainName": "google.com",
+      "matchHost": "google.com",
       "token": "{{ secrets.GOOGLE_TOKEN }}"
     }
   ]
@@ -375,3 +410,5 @@ This is currently applicable to `npm` and `lerna`/`npm` only, and only used in c
 ## token
 
 ## username
+
+Mandatory if a GitHub app token is in use using the CLI.

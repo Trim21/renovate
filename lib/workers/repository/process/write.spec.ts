@@ -19,7 +19,7 @@ const limits = mocked(_limits);
 branchWorker.processBranch = jest.fn();
 
 limits.getPrsRemaining = jest.fn().mockResolvedValue(99);
-limits.getBranchesRemaining = jest.fn().mockReturnValue(99);
+limits.getBranchesRemaining = jest.fn().mockResolvedValue(99);
 
 let config: RenovateConfig;
 beforeEach(() => {
@@ -27,7 +27,7 @@ beforeEach(() => {
   config = getConfig();
 });
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('writeUpdates()', () => {
     it('stops after automerge', async () => {
       const branches: BranchConfig[] = [
@@ -66,7 +66,7 @@ describe(getName(__filename), () => {
       });
       git.branchExists.mockReturnValueOnce(false);
       git.branchExists.mockReturnValueOnce(true);
-      limits.getBranchesRemaining.mockReturnValueOnce(1);
+      limits.getBranchesRemaining.mockResolvedValueOnce(1);
       expect(isLimitReached(Limit.Branches)).toBeFalse();
       await writeUpdates({ config }, branches);
       expect(isLimitReached(Limit.Branches)).toBeTrue();

@@ -10,8 +10,6 @@ import type { File } from '../util/git';
 export type Result<T> = T | Promise<T>;
 
 export interface ManagerConfig {
-  binarySource?: string;
-  localDir?: string;
   registryUrls?: string[];
 }
 
@@ -19,14 +17,14 @@ export interface ManagerData<T> {
   managerData?: T;
 }
 
-export interface ExtractConfig extends ManagerConfig {
+export interface ExtractConfig {
+  registryUrls?: string[];
   endpoint?: string;
   gradle?: { timeout?: number };
   aliases?: Record<string, string>;
   npmrc?: string;
   yarnrc?: string;
   skipInstalls?: boolean;
-  versioning?: string;
   updateInternalDeps?: boolean;
 }
 
@@ -42,7 +40,6 @@ export interface CustomExtractConfig extends ExtractConfig {
 export interface UpdateArtifactsConfig extends ManagerConfig {
   isLockFileMaintenance?: boolean;
   constraints?: Record<string, string>;
-  cacheDir?: string;
   composerIgnorePlatformReqs?: boolean;
   currentValue?: string;
   postUpdateOptions?: string[];
@@ -146,6 +143,8 @@ export interface LookupUpdate {
   newMinor?: number;
   newValue: string;
   semanticCommitType?: string;
+  pendingChecks?: boolean;
+  pendingVersions?: string[];
   newVersion?: string;
   updateType?: UpdateType;
 }
@@ -181,7 +180,6 @@ export interface Upgrade<T = Record<string, any>>
   isLockfileUpdate?: boolean;
   currentRawValue?: any;
   depGroup?: string;
-  localDir?: string;
   name?: string;
   newDigest?: string;
   newFrom?: string;
@@ -194,6 +192,7 @@ export interface Upgrade<T = Record<string, any>>
   version?: string;
   isLockFileMaintenance?: boolean;
   isRemediation?: boolean;
+  isVulnerabilityAlert?: boolean;
 }
 
 export interface ArtifactError {
@@ -273,10 +272,10 @@ export interface ManagerApi {
 
 // TODO: name and properties used by npm manager
 export interface PostUpdateConfig extends ManagerConfig, Record<string, any> {
-  cacheDir?: string;
   updatedPackageFiles?: File[];
   postUpdateOptions?: string[];
   skipInstalls?: boolean;
+  ignoreScripts?: boolean;
 
   platform?: string;
   upgrades?: Upgrade[];

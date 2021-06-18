@@ -1,42 +1,18 @@
-import { readFileSync } from 'fs';
-import { getName } from '../../../test/util';
+import { fs, getName, loadFixture } from '../../../test/util';
 import { setAdminConfig } from '../../config/admin';
-import { extractPackageFile } from './extract';
+import { extractAllPackageFiles, extractPackageFile } from './extract';
 
-const requirements1 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements1.txt',
-  'utf8'
-);
-const requirements2 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements2.txt',
-  'utf8'
-);
-const requirements3 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements3.txt',
-  'utf8'
-);
+jest.mock('../../util/fs');
 
-const requirements4 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements4.txt',
-  'utf8'
-);
+const requirements1 = loadFixture('requirements1.txt');
+const requirements2 = loadFixture('requirements2.txt');
+const requirements3 = loadFixture('requirements3.txt');
+const requirements4 = loadFixture('requirements4.txt');
+const requirements5 = loadFixture('requirements5.txt');
+const requirements6 = loadFixture('requirements6.txt');
+const requirements7 = loadFixture('requirements7.txt');
 
-const requirements5 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements5.txt',
-  'utf8'
-);
-
-const requirements6 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements6.txt',
-  'utf8'
-);
-
-const requirements7 = readFileSync(
-  'lib/manager/pip_requirements/__fixtures__/requirements7.txt',
-  'utf8'
-);
-
-describe(getName(__filename), () => {
+describe(getName(), () => {
   beforeEach(() => {
     delete process.env.PIP_TEST_TOKEN;
     setAdminConfig();
@@ -67,15 +43,31 @@ describe(getName(__filename), () => {
       expect(res.registryUrls).toEqual(['http://example.com/private-pypi/']);
       expect(res.deps).toHaveLength(3);
     });
+    it('extracts using extractAllPackageFiles', async () => {
+      fs.readLocalFile.mockResolvedValueOnce(requirements1);
+      const outerRes = await extractAllPackageFiles(config, [
+        'unused_file_name',
+      ]);
+      expect(outerRes).toMatchSnapshot();
+      const [res] = outerRes;
+      expect(res.registryUrls).toEqual(['http://example.com/private-pypi/']);
+      expect(res.deps).toHaveLength(3);
+    });
     it('extracts multiple dependencies', () => {
-      const res = extractPackageFile(requirements2, 'unused_file_name', config)
-        .deps;
+      const res = extractPackageFile(
+        requirements2,
+        'unused_file_name',
+        config
+      ).deps;
       expect(res).toMatchSnapshot();
       expect(res).toHaveLength(5);
     });
     it('handles comments and commands', () => {
-      const res = extractPackageFile(requirements3, 'unused_file_name', config)
-        .deps;
+      const res = extractPackageFile(
+        requirements3,
+        'unused_file_name',
+        config
+      ).deps;
       expect(res).toMatchSnapshot();
       expect(res).toHaveLength(5);
     });
@@ -113,6 +105,20 @@ describe(getName(__filename), () => {
         'http://example.com/private-pypi/',
       ]);
       expect(res.deps).toHaveLength(6);
+    });
+
+    it('handles extra spaces around pinned dependency equal signs', () => {
+      const res = extractPackageFile(requirements4, 'unused_file_name', {});
+      expect(res).toMatchSnapshot();
+
+      expect(res.deps[0].currentValue).toStartWith('==');
+      expect(res.deps[0].currentVersion).toStartWith('2.0.12');
+      expect(res.deps[1].currentValue).toStartWith('==');
+      expect(res.deps[1].currentVersion).toStartWith('4.1.1');
+      expect(res.deps[2].currentValue).toStartWith('==');
+      expect(res.deps[2].currentVersion).toStartWith('3.2.1');
+
+      expect(res.deps).toHaveLength(3);
     });
     it('should not replace env vars in low trust mode', () => {
       process.env.PIP_TEST_TOKEN = 'its-a-secret';

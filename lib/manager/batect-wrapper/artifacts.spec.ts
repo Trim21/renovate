@@ -21,10 +21,8 @@ function artifactForPath(
   };
 }
 
-describe(getName(__filename), () => {
+describe(getName(), () => {
   beforeEach(() => {
-    httpMock.setup();
-
     httpMock
       .scope('https://github.com')
       .get('/batect/batect/releases/download/1.2.3/batect')
@@ -46,9 +44,8 @@ describe(getName(__filename), () => {
       .reply(418);
   });
 
-  afterEach(() => {
-    httpMock.reset();
-  });
+  // TODO: fix mocks
+  afterEach(() => httpMock.clear(false));
 
   describe('updateArtifacts', () => {
     it('returns updated files if the wrapper script is in the root directory', async () => {

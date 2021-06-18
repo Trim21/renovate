@@ -11,12 +11,7 @@ import { ExecOptions, exec } from '../../../util/exec';
 import { move, pathExists, readFile, remove } from '../../../util/fs';
 import type { PostUpdateConfig, Upgrade } from '../../types';
 import { getNodeConstraint } from './node-version';
-
-export interface GenerateLockFileResult {
-  error?: boolean;
-  lockFile?: string;
-  stderr?: string;
-}
+import type { GenerateLockFileResult } from './types';
 
 export async function generateLockFile(
   cwd: string,
@@ -51,11 +46,16 @@ export async function generateLockFile(
     let cmdOptions = '';
     if (postUpdateOptions?.includes('npmDedupe') || skipInstalls === false) {
       logger.debug('Performing node_modules install');
-      cmdOptions += '--ignore-scripts --no-audit';
+      cmdOptions += '--no-audit';
     } else {
       logger.debug('Updating lock file only');
-      cmdOptions += '--package-lock-only --ignore-scripts --no-audit';
+      cmdOptions += '--package-lock-only --no-audit';
     }
+
+    if (!getAdminConfig().allowScripts || config.ignoreScripts) {
+      cmdOptions += ' --ignore-scripts';
+    }
+
     const tagConstraint = await getNodeConstraint(config);
     const execOptions: ExecOptions = {
       cwd,

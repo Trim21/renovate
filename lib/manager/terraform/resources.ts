@@ -1,12 +1,10 @@
-import * as datasourceHelm from '../../datasource/helm';
+import { HelmDatasource } from '../../datasource/helm';
 import { SkipReason } from '../../types';
 import { getDep } from '../dockerfile/extract';
 import type { PackageDependency } from '../types';
+import { TerraformDependencyTypes, TerraformResourceTypes } from './common';
+import type { ExtractionResult, ResourceManagerData } from './types';
 import {
-  ExtractionResult,
-  ResourceManagerData,
-  TerraformDependencyTypes,
-  TerraformResourceTypes,
   checkIfStringIsPath,
   keyValueExtractionRegex,
   resourceTypeExtractionRegex,
@@ -106,7 +104,7 @@ export function analyseTerraformResource(
       dep.depType = 'helm_release';
       dep.registryUrls = [dep.managerData.repository];
       dep.depName = dep.managerData.chart;
-      dep.datasource = datasourceHelm.id;
+      dep.datasource = HelmDatasource.id;
       break;
 
     default:

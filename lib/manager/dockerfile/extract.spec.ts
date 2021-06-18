@@ -1,18 +1,10 @@
-import { readFileSync } from 'fs';
-import { getName } from '../../../test/util';
+import { getName, loadFixture } from '../../../test/util';
 import { extractPackageFile, getDep } from './extract';
 
-const d1 = readFileSync(
-  'lib/manager/dockerfile/__fixtures__/1.Dockerfile',
-  'utf8'
-);
+const d1 = loadFixture('1.Dockerfile');
+const d2 = loadFixture('2.Dockerfile');
 
-const d2 = readFileSync(
-  'lib/manager/dockerfile/__fixtures__/2.Dockerfile',
-  'utf8'
-);
-
-describe(getName(__filename), () => {
+describe(getName(), () => {
   describe('extractPackageFile()', () => {
     it('handles no FROM', () => {
       const res = extractPackageFile('no from!');
@@ -47,13 +39,15 @@ describe(getName(__filename), () => {
       expect(res).toMatchSnapshot();
     });
     it('handles comments', () => {
-      const res = extractPackageFile('# some comment\n# another\n\nFROM node\n')
-        .deps;
+      const res = extractPackageFile(
+        '# some comment\n# another\n\nFROM node\n'
+      ).deps;
       expect(res).toMatchSnapshot();
     });
     it('handles custom hosts', () => {
-      const res = extractPackageFile('FROM registry2.something.info/node:8\n')
-        .deps;
+      const res = extractPackageFile(
+        'FROM registry2.something.info/node:8\n'
+      ).deps;
       expect(res).toMatchSnapshot();
     });
     it('handles custom hosts and suffix', () => {
